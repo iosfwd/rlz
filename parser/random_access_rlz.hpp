@@ -2,12 +2,16 @@
 
 #include <span>
 #include <tuple>
-#include <variant>
 #include <vector>
 
 #include <cstdint>
 
 #include <sdsl/sd_vector.hpp>
+
+struct rlz_view {
+    const void* ptr = nullptr;
+    const std::size_t len = 0;
+};
 
 template<typename T>
 struct random_access_rlz {
@@ -81,23 +85,23 @@ struct random_access_rlz {
         }
     }
 
-    void get_spans(std::size_t pos, std::size_t len, std::vector<std::variant<std::span<const T>, T>>& buf) const {
+    void get_spans(std::size_t pos, std::size_t len, std::vector<rlz_view>& buf) const {
         std::int64_t copied = 0;
         while (copied < len) {
             const auto phrase = pos_to_phrase(pos);
             if (phrase_length(phrase) > 1) {
-                std::int64_t to_copy = length_until_phrase_end(pos);
+                std::size_t to_copy = length_until_phrase_end(pos);
 
                 if (to_copy > len - copied) {
                     to_copy = len - copied;
                 }
 
-                std::span<const T> sp(ref_vec.data() + pos_to_pos_in_ref(pos), to_copy);
-                buf.emplace_back(sp);
+                rlz_view v = { .ptr = ref_vec.data() + pos_to_pos_in_ref(pos), .len = to_copy };
+                buf.emplace_back(v);
                 copied += to_copy;
                 pos += to_copy;
             } else {
-                buf.emplace_back(static_cast<T>(ref_ptrs[phrase]));
+                rlz_view v = { .ptr = &(ref_ptrs[phrase]), .len = 1 };
                 ++copied;
                 ++pos;
             }
