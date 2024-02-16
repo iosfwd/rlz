@@ -96,12 +96,11 @@ struct random_access_rlz {
                     to_copy = len - copied;
                 }
 
-                rlz_view v = { .ptr = ref_vec.data() + pos_to_pos_in_ref(pos), .len = to_copy };
-                buf.emplace_back(v);
+                buf.emplace_back(rlz_view{ .ptr = ref_vec.data() + pos_to_pos_in_ref(pos), .len = to_copy });
                 copied += to_copy;
                 pos += to_copy;
             } else {
-                rlz_view v = { .ptr = &(ref_ptrs[phrase]), .len = 1 };
+                buf.emplace_back(rlz_view{ .ptr = &(ref_ptrs[phrase]), .len = 1 });
                 ++copied;
                 ++pos;
             }
