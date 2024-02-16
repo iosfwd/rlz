@@ -2,6 +2,7 @@
 #include <iostream>
 #include <random>
 #include <span>
+#include <variant>
 
 #include "parser.hpp"
 #include "random_access_rlz.hpp"
@@ -40,7 +41,7 @@ double access_1_benchmark(const random_access_rlz<T>& rrlz, const std::size_t in
 template<typename T>
 double access_10_benchmark(const random_access_rlz<T>& rrlz, const std::size_t input_sz) {
     const auto sampling_positions = generate_sampling_positions(10'000, input_sz - 9);
-    std::vector<std::span<const T>> buf;
+    std::vector<std::variant<std::span<const T>, T>> buf;
     buf.reserve(10'000);
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -50,7 +51,11 @@ double access_10_benchmark(const random_access_rlz<T>& rrlz, const std::size_t i
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> duration = end - start;
 
-    std::cout << buf.back().back() << "\n";
+    if (buf.back().index() == 0) {
+        std::cout << std::get<0>(buf.back()).back() << "\n";
+    } else {
+        std::cout << std::get<1>(buf.back()) << "\n";
+    }
 
     return duration.count();
 }
@@ -58,7 +63,7 @@ double access_10_benchmark(const random_access_rlz<T>& rrlz, const std::size_t i
 template<typename T>
 double access_100_benchmark(const random_access_rlz<T>& rrlz, const std::size_t input_sz) {
     const auto sampling_positions = generate_sampling_positions(10'000, input_sz - 99);
-    std::vector<std::span<const T>> buf;
+    std::vector<std::variant<std::span<const T>, T>> buf;
     buf.reserve(10'000);
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -68,7 +73,11 @@ double access_100_benchmark(const random_access_rlz<T>& rrlz, const std::size_t 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> duration = end - start;
 
-    std::cout << buf.back().back() << "\n";
+    if (buf.back().index() == 0) {
+        std::cout << std::get<0>(buf.back()).back() << "\n";
+    } else {
+        std::cout << std::get<1>(buf.back()) << "\n";
+    }
 
     return duration.count();
 }

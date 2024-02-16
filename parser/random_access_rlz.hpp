@@ -2,7 +2,7 @@
 
 #include <span>
 #include <tuple>
-#include <unordered_map>
+#include <variant>
 #include <vector>
 
 #include <cstdint>
@@ -81,19 +81,26 @@ struct random_access_rlz {
         }
     }
 
-    void get_spans(std::size_t pos, std::size_t len, std::vector<std::span<const T>>& buf) const {
+    void get_spans(std::size_t pos, std::size_t len, std::vector<std::variant<std::span<const T>, T>>& buf) const {
         std::int64_t copied = 0;
         while (copied < len) {
-            std::int64_t to_copy = length_until_phrase_end(pos);
+            const auto phrase = pos_to_phrase(pos);
+            if (phrase_length(phrase) > 1) {
+                std::int64_t to_copy = length_until_phrase_end(pos);
 
-            if (to_copy > len - copied) {
-                to_copy = len - copied;
+                if (to_copy > len - copied) {
+                    to_copy = len - copied;
+                }
+
+                std::span<const T> sp(ref_vec.data() + pos_to_pos_in_ref(pos), to_copy);
+                buf.emplace_back(sp);
+                copied += to_copy;
+                pos += to_copy;
+            } else {
+                buf.emplace_back(static_cast<T>(ref_ptrs[phrase]));
+                ++copied;
+                ++pos;
             }
-
-            std::span<const T> sp(ref_vec.data() + pos_to_pos_in_ref(pos), to_copy);
-            buf.push_back(sp);
-            copied += to_copy;
-            pos += to_copy;
         }
     }
 
