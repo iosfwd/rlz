@@ -4,6 +4,8 @@
 #include <tuple>
 #include <utility>
 #include <vector>
+#include <chrono>
+#include <string.h>
 
 template<typename T>
 std::vector<T> read_file(const char* filename) {
@@ -115,6 +117,10 @@ std::vector<std::tuple<std::size_t, std::size_t, std::size_t>> lzFactorize(const
                                                                            const T2* sa) {
     std::vector<std::tuple<std::size_t, std::size_t, std::size_t>> spl_vec;
     std::size_t i = 0;
+    
+    auto start = std::chrono::high_resolution_clock::now();
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> duration = end - start;
 
     while (i < input_sz) {
         auto [pos, len] = computeLZFactorAt<T1, T2>(input, input_sz, ref, ref_sz, sa, i);
@@ -125,7 +131,14 @@ std::vector<std::tuple<std::size_t, std::size_t, std::size_t>> lzFactorize(const
         }
 
         spl_vec.push_back({i, pos, len});
+        /* if (!(spl_vec.size()%1000000)) {
+            end = std::chrono::high_resolution_clock::now();
 
+            duration = end - start;
+
+            std::cout << "Factorized next 1 000 000, (" << spl_vec.size()/1000000 << "), (i, input size) = (" << i  << ", " << input_sz << "), took: " << duration.count() << " milliseconds\n";
+            start = std::chrono::high_resolution_clock::now();
+        } */
         i += len;
     }
 
