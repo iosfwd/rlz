@@ -24,7 +24,7 @@ int main(int argc, char* argv[]) {
     std::cout << "Starting LZ factoriazation" << std::endl;
     auto start = std::chrono::high_resolution_clock::now();
 
-    auto res = lzFactorize<std::uint32_t, std::uint32_t>(input_vec.data(), input_vec.size(), ref_vec.data(), ref_vec.size(), sa_vec.data());
+    auto res = lzFactorize(input_vec, ref_vec, sa_vec);
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> duration = end - start;
 
@@ -38,13 +38,13 @@ int main(int argc, char* argv[]) {
             ofs << "(" << start << ", " << pos << ", " << len << ")\n";
         } */
         // write res to file as binary, this way seems to work
-        ofs.write(reinterpret_cast<char*>(res.data()), sizeof(std::size_t) * 3 * res.size());
-        /* for (auto [start, pos, len] : res) {
+        // ofs.write(reinterpret_cast<char*>(res.data()), sizeof(std::size_t) * 3 * res.size());
+        for (auto [start, pos, len] : res) {
             ofs.write(reinterpret_cast<char*>(&start), sizeof(std::size_t));
             ofs.write(reinterpret_cast<char*>(&pos), sizeof(std::size_t));
             ofs.write(reinterpret_cast<char*>(&len), sizeof(std::size_t));
             // ofs << "(" << start << ", " << pos << ", " << len << ")\n";
-        } */
+        }
         ofs.close();
         end = std::chrono::high_resolution_clock::now();
         duration = end - start;
@@ -52,12 +52,14 @@ int main(int argc, char* argv[]) {
     }
     
     std::cout << "Building RLZ index" << std::endl;
-
     start = std::chrono::high_resolution_clock::now();
+
     random_access_rlz<std::uint32_t> rrlz(ref_vec, res);
+    
     end = std::chrono::high_resolution_clock::now();
     duration = end - start;
     std::cout << "Finished building RLZ index, took: " << duration.count() / 1000 << " seconds" << std::endl;
+    
     const auto [last_start, last_pos, last_len] = res.back();
     const std::size_t decompressed_sz = last_start + last_len;
     const auto avrg_phrase_len = static_cast<double>(decompressed_sz) / static_cast<double>(res.size());
@@ -72,14 +74,16 @@ int main(int argc, char* argv[]) {
     for (const auto [start, pos, len] : res) {
         if (len == 1) {
             ++mismatches;
-        } else {
-            if (pos + len >= ref_vec.size()) { 
-                std::cout << "pos + i >= ref_vec.size() " << pos << " + " << len << " = " << pos + len << " <= " << ref_vec.size() << " skipping iteration" << std::endl;
-                continue;
+            if (pos + len > ref_vec.size()) { 
+                std::cout << "pos + len >= ref_vec.size() " << pos << " + " << len << " = " << pos + len << " <= " << ref_vec.size() << " skipping iteration" << std::endl;
             }
-            
-            for (std::size_t i = 0; i < len; ++i) {
-                cov_bv[pos + i] = 1;
+        } else {
+            if (pos + len > ref_vec.size()) { 
+                std::cout << "pos + len >= ref_vec.size() " << pos << " + " << len << " = " << pos + len << " <= " << ref_vec.size() << " skipping iteration" << std::endl;
+            } else {
+                for (std::size_t i = 0; i < len; ++i) {
+                    cov_bv[pos + i] = 1;
+                }
             }
         }
     }
@@ -95,19 +99,30 @@ int main(int argc, char* argv[]) {
     
     const double coverage = static_cast<double>(ones) / static_cast<double>(ref_vec.size());
 
-    std::cout << "size of index: " << rrlz.size_in_bytes() << " bytes" << std::endl;
-    std::cout << "size of reference: " << rrlz.ref_vec.size() * sizeof(std::uint32_t) << " bytes\n";
+    std::cout << "size of index: " << rrlz.size_in_bytes() << " bytes\n";
+    std::cout << "size of reference: " << rrlz.ref_vec.size() * sizeof(decltype(ref_vec)::value_type) << " bytes\n";
     std::cout << "size of reference pointers: " << rrlz.ref_ptrs.size() * sizeof(std::size_t) << " bytes\n";
     std::cout << "size of starts: " << rrlz.starts.size() / 8 << " bytes\n";
     std::cout << "number of phrases: " << res.size() << "\n";
     std::cout << "average phrase length: " << avrg_phrase_len << "\n";
     std::cout << "length 1 matches: " << mismatches << "\n";
     std::cout << "reference covered: " << coverage << "\n";
+    std::cout << "This was indeed the freshest version" << "\n";
 
     for (std::size_t i = 0; i < input_vec.size(); ++i) {
         if (rrlz.access(i) != input_vec[i]) {
             std::cout << "i: " << i << " | " << rrlz.access(i) << " != " << input_vec[i] << "\n";
         }
+    }
+
+    if (argc == 5) {
+        std::string name_str(argv[4]);
+        name_str += "_txt";
+        std::ofstream ofs(name_str.c_str());
+        for (const auto& [start, pos, len] : res) {
+            ofs << "(" << start << ", " << pos << ", " << len << ")\n";
+        }
+        ofs.close();
     }
 
 }

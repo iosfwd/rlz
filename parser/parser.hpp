@@ -1,6 +1,7 @@
 #pragma once
 
 #include <fstream>
+#include <optional>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -29,20 +30,35 @@ std::vector<T> read_file(const char* filename) {
 }
 
 template<typename T1, typename T2>
-inline std::int64_t binarySearchLB(const T1* ref, const T2* sa,
-                                   std::int64_t lo, std::int64_t hi, const std::int64_t offset, const T1 c) {
-    std::int64_t low = lo, high = hi;
+inline std::optional<std::int64_t> binarySearchLB(const std::vector<T1>& ref, const std::vector<T2>& sa,
+                                                 const std::int64_t lo, const std::int64_t hi,
+                                                 const std::int64_t offset, const T1 c) {
+    std::int64_t low = lo;
+    std::int64_t high = hi;
+
     while (low <= high) {
-        std::int64_t mid = (low + high) >> 1;
-        T1 midVal = ref[sa[mid] + offset];
-        if (midVal < c)
+        const std::int64_t mid = low + (high - low) / 2;
+        if (sa.at(mid) + offset >= ref.size()) {
+                std::cout << "binarySearchLB sa.at(mid) + offset >= ref.size()\t " << sa.at(mid) << " + " << offset << " >= " << ref.size() << std::endl;
+                std::cout << "mid= " << mid << " , sa[mid]= " << sa[mid] << ", offset= " << offset << std::endl;
+                std::cout << "lo= " << lo << " (parameter), low= " << low << " (local), hi= " << hi <<  " (parameter), high= " << high << std::endl; 
+            }
+        const auto midVal = ref.at(sa.at(mid) + offset);
+
+        if (midVal < c) {
             low = mid + 1;
-        else if (midVal > c)
+        } else if (midVal > c) {
             high = mid - 1;
-        else { //midVal == c
-            if (mid == lo)
+        } else { //midVal == c
+            if (mid == lo) {
                 return mid; // leftmost occ of key found
-            T1 midValLeft = ref[sa[mid - 1] + offset];
+            }
+            if (sa.at(mid - 1) + offset >= ref.size()) {
+                std::cout << "binarySearchLB sa.at(mid - 1) + offset >= ref.size()\t " << sa.at(mid - 1) << " + " << offset << " >= " << ref.size() << std::endl;
+                std::cout << "mid= " << mid << " , sa[mid]= " << sa[mid] << ", offset= " << offset << std::endl;
+                std::cout << "lo= " << lo << " (parameter), low= " << low << " (local), hi= " << hi <<  " (parameter), high= " << high << std::endl; 
+            }
+            const auto midValLeft = ref.at(sa.at(mid - 1) + offset);
             if (midValLeft == midVal) {
                 high = mid - 1; //discard mid and the ones to the right of mid
             } else { //midValLeft must be less than midVal == c
@@ -50,24 +66,40 @@ inline std::int64_t binarySearchLB(const T1* ref, const T2* sa,
             }
         }
     }
-    return -(low + 1);  // key not found.
+
+    return {}; // key not found.
 }
 
 template<typename T1, typename T2>
-inline std::int64_t binarySearchRB(const T1* ref, const T2* sa,
-                                   std::int64_t lo, std::int64_t hi, const std::int64_t offset, const T1 c) {
-    std::int64_t low = lo, high = hi;
+inline std::optional<std::int64_t> binarySearchRB(const std::vector<T1>& ref, const std::vector<T2>& sa,
+                                                 const std::int64_t lo, const std::int64_t hi,
+                                                 const std::int64_t offset, const T1 c) {
+    std::int64_t low = lo;
+    std::int64_t high = hi;
+
     while (low <= high) {
-        std::int64_t mid = (low + high) >> 1;
-        T1 midVal = ref[sa[mid] + offset];
-        if (midVal < c)
+        const std::int64_t mid = low + (high - low) / 2;
+        if (sa.at(mid) + offset >= ref.size()) {
+            std::cout << "binarySearchRB sa.at(mid) + offset >= ref.size()" << sa.at(mid) << " + " << offset << ">= " << ref.size() << std::endl;
+            std::cout << "mid= " << mid << " , sa[mid]= " << sa[mid] << ", offset= " << offset << std::endl;
+            std::cout << "lo= " << lo << " (parameter), low= " << low << " (local), hi= " << hi <<  " (parameter), high= " << high << std::endl; 
+        }
+        const auto midVal = ref.at(sa.at(mid) + offset);
+
+        if (midVal < c) {
             low = mid + 1;
-        else if (midVal > c)
+        } else if (midVal > c) {
             high = mid - 1;
-        else { //midVal == c
-            if (mid == hi)
+        } else { //midVal == c
+            if (mid == hi) {
                 return mid; // rightmost occ of key found
-            T1 midValRight = ref[sa[mid + 1] + offset];
+            }
+            if (sa.at(mid + 1) + offset >= ref.size()) {
+                std::cout << "binarySearchRB sa.at(mid + 1) + offset >= ref.size() " << sa.at(mid + 1) << " + " << offset << " >= " << ref.size() << std::endl;
+                std::cout << "mid= " << mid << " , sa[mid + 1] : " << sa[mid + 1] << " , sa[mid]= " << sa[mid] << ", offset= " << offset << std::endl;
+                std::cout << "lo= " << lo << " (parameter), low= " << low << " (local), hi= " << hi <<  " (parameter), high= " << high << std::endl; 
+            }
+            const auto midValRight = ref.at(sa.at(mid + 1) + offset);
             if (midValRight == midVal) {
                 low = mid + 1; //discard mid and the ones to the left of mid
             } else { //midValRight must be greater than midVal == c
@@ -75,70 +107,77 @@ inline std::int64_t binarySearchRB(const T1* ref, const T2* sa,
             }
         }
     }
-    return -(low + 1);  // key not found.
+    return {}; // key not found.
 }
 
 template<typename T1, typename T2>
-std::pair<std::size_t, std::size_t> computeLZFactorAt(const T1* input, const std::size_t input_sz,
-                                                      const T1* ref, const std::size_t ref_sz,
-                                                      const T2* sa, const std::size_t input_pos) {
+std::tuple<std::size_t, std::size_t> computeLZFactorAt(const std::vector<T1>& input,
+                                                       const std::vector<T1>& ref,
+                                                       const std::vector<T2>& sa,
+                                                       const std::size_t input_pos) {
     std::size_t offset = 0;
     std::size_t j = input_pos;
 
     std::size_t match = 0;
-    std::int64_t nlb = 0;
-    std::int64_t nrb = ref_sz - 1;
+    std::size_t nlb = 0;
+    std::size_t nrb = ref.size() - 1;
 
-    while (j < input_sz) {
+     while (j < input.size()) {
+        if (sa[nlb] + offset >= ref.size()) {
+            // std::cout << "This happened: sa[nlb] + offset >= ref.size() " << sa[nlb] << " + " << offset << ">= " << ref.size() << " \tskipping b_search" << std::endl;
+            // std::cout << "nlb : " << nlb << " , sa[nlb] : " << sa[nlb] << " , offset= " << offset << std::endl;
+            break;
+        }
         if (nlb == nrb) {
-            if (ref[sa[nlb] + offset] != input[j]) {
+            if (sa[nlb] + offset >= ref.size()) {
+                std::cout << "This happened: sa[nlb] + offset >= ref.size() " << sa[nlb] << " + " << offset << ">= " << ref.size() << std::endl;
+                std::cout << "nlb : " << nlb << " , sa[nlb] : " << sa[nlb] << " , offset= " << offset << std::endl;
+            }
+            if (ref.at(sa[nlb] + offset) != input.at(j)) {
+                // std::cout << "At input index: " << j << " ref[sa[nlb] + offset] != input[j] : nlb = " << nlb << " sa[nlb] = " << sa[nlb] << " offset = " << offset << std::endl;
                 break;
             }
         }
         else {
-            nlb = binarySearchLB<T1, T2>(ref, sa, nlb, nrb, offset, input[j]);
-            if (nlb < 0) {
+            if (const auto opt = binarySearchLB(ref, sa, nlb, nrb, offset, input.at(j))) {
+                nlb = opt.value();
+            } else {
                 break;
             }
-            nrb = binarySearchRB<T1, T2>(ref, sa, nlb, nrb, offset, input[j]);
+
+            if (const auto opt = binarySearchRB(ref, sa, nlb, nrb, offset, input.at(j))) {
+                nrb = opt.value();
+            } else {
+                break;
+            }
         }
 
+        //std::cout << "At input index: " << j << " end of while loop, nlb= " << nlb << " sa[nlb] = " << sa[nlb] << " offset = " << offset << " nrb = " << nrb << std::endl;
         match = sa[nlb];
         ++j;
         ++offset;
     }
 
-    return std::make_pair(match, offset);
+    return {match, offset};
 }
 
 template<typename T1, typename T2>
-std::vector<std::tuple<std::size_t, std::size_t, std::size_t>> lzFactorize(const T1* input, const std::size_t input_sz,
-                                                                           const T1* ref, const std::size_t ref_sz,
-                                                                           const T2* sa) {
+std::vector<std::tuple<std::size_t, std::size_t, std::size_t>> lzFactorize(const std::vector<T1>& input,
+                                                                           const std::vector<T1>& ref,
+                                                                           const std::vector<T2>& sa) {
     std::vector<std::tuple<std::size_t, std::size_t, std::size_t>> spl_vec;
     std::size_t i = 0;
-    
-    auto start = std::chrono::high_resolution_clock::now();
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double, std::milli> duration = end - start;
 
-    while (i < input_sz) {
-        auto [pos, len] = computeLZFactorAt<T1, T2>(input, input_sz, ref, ref_sz, sa, i);
+    while (i < input.size()) {
+        auto [pos, len] = computeLZFactorAt(input, ref, sa, i);
 
         if (len <= 1) {
-            pos = static_cast<std::size_t>(input[i]);
+            pos = static_cast<std::size_t>(input.at(i));
             len = 1;
         }
 
         spl_vec.push_back({i, pos, len});
-        /* if (!(spl_vec.size()%1000000)) {
-            end = std::chrono::high_resolution_clock::now();
 
-            duration = end - start;
-
-            std::cout << "Factorized next 1 000 000, (" << spl_vec.size()/1000000 << "), (i, input size) = (" << i  << ", " << input_sz << "), took: " << duration.count() << " milliseconds\n";
-            start = std::chrono::high_resolution_clock::now();
-        } */
         i += len;
     }
 

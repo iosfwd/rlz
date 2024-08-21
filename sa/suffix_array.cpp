@@ -84,7 +84,7 @@ int main(int argc, char* argv[]) {
     const auto input = read_file<std::uint32_t>(input_filename.c_str());
     auto sa = prefix_doubling<std::uint32_t, std::uint32_t>(input.data(), input.size());
 
-    auto out_file = input_filename + ".sa";
+    auto out_file = input_filename + ".sa_np";
     std::ofstream ofs(out_file);
     ofs.write(reinterpret_cast<char*>(sa.data()), sizeof(decltype(sa)::value_type) * sa.size());
     ofs.close();

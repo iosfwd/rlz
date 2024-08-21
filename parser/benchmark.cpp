@@ -84,9 +84,9 @@ int main(int argc, char* argv[]) {
         std::exit(1);
     }
 
-    auto ref_vec = read_file<unsigned int>(argv[1]);
+    auto ref_vec = read_file<std::uint32_t>(argv[1]);
     auto parsing_vec = read_file<std::size_t>(argv[2]);
-    auto input_vec = read_file<unsigned int>(argv[3]);
+    auto input_vec = read_file<std::uint32_t>(argv[3]);
     //auto sa_vec = read_file<unsigned int>(argv[2]);
     //auto res = lzFactorize<unsigned int, unsigned int>(input_vec.data(), input_vec.size(), ref_vec.data(), ref_vec.size(), sa_vec.data());
 
@@ -105,4 +105,5 @@ int main(int argc, char* argv[]) {
     std::cout << "Access length 10: " << access_10_benchmark(rrlz, input_vec.size()) << " milliseconds\n";
     std::cout << "Access length 100: " << access_100_benchmark(rrlz, input_vec.size()) << " milliseconds\n";
     std::cout << "Size of index in bytes: " << rrlz.size_in_bytes() << "\n";
+    std::cout << "Size of parsing: " << res.size() << "\n";
 }
